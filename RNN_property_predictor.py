@@ -9,10 +9,6 @@ try:
 except:
        import tensorflow as tf
 
-# config = tf.ConfigProto()
-# config.gpu_options.per_process_gpu_memory_fraction = 1
-# config.gpu_options.allow_growth = True
-
 class Model(object):
 
     def __init__(self, seqlen_x, dim_x, dim_y, dim_z=100, dim_h=250, n_hidden=3, batch_size=200, char_set=[' ']):
@@ -26,102 +22,49 @@ class Model(object):
         self.G.as_default()
 
         ## variables for labeled data
-        with tf.name_scope('label') as scope:
-            self.x_L = tf.placeholder(tf.float32, [None, self.seqlen_x, self.dim_x], name="x_L")          
-            self.y_L = tf.placeholder(tf.float32, [None, self.dim_y], name="y_L")
+        self.x_L = tf.placeholder(tf.float32, [None, self.seqlen_x, self.dim_x], name="x_L")          
+        self.y_L = tf.placeholder(tf.float32, [None, self.dim_y], name="y_L")
 
         ## functions for labeled data
         self.y_L_mu = self._rnnpredictor(self.x_L, self.dim_h, self.dim_y, reuse = False)
         
         ## variables for unlabeled data
-        with tf.name_scope('unlabel') as scope:
-            self.x_U = tf.placeholder(tf.float32, [None, self.seqlen_x, self.dim_x], name='x_U')
-
-
+        self.x_U = tf.placeholder(tf.float32, [None, self.seqlen_x, self.dim_x], name='x_U')
+        
         ## functions for unlabeled data
         self.y_U_mu = self._rnnpredictor(self.x_U, self.dim_h, self.dim_y, reuse = True)
-
-
 
         self.saver = tf.train.Saver()
         self.session = tf.Session()
         
 
     def train(self, trnX_L, trnY_L, epochs):
-      
-        # self.mu_prior=np.mean(trnY_L,0)   
-        # self.cov_prior=np.cov(trnY_L.T)     
-
-        # self.tf_mu_prior=tf.constant(self.mu_prior, shape=[1, self.dim_y], dtype=tf.float32)   
-        # self.tf_cov_prior=tf.constant(self.cov_prior, shape=[self.dim_y, self.dim_y], dtype=tf.float32)
-
-
-        # objective functions   
-        # with tf.name_scope('objYpred_MSE'):
-        #     objYpred_MSE = tf.reduce_mean(tf.reduce_sum(tf.squared_difference(self.y_L, self.y_L_mu), 1))
-
-        with tf.name_scope('objYpred_MAE'):
-            objYpred_MAE = tf.reduce_mean(tf.reduce_sum(tf.abs(tf.subtract(self.y_L,self.y_L_mu)), 1))
-        # # with tf.name_scope('objYpred_MSE_val'):
-        #     objYpred_MSE_val = tf.reduce_mean(tf.reduce_sum(tf.squared_difference(self.y_L, self.y_L_mu), 1))
-
-        batch_size_L=int(self.batch_size)
-        
-        n_batch=int(len(trnX_L)/batch_size_L)
-    
-        
-       
-            
-        # cost_val = objYpred_MSE
+        objYpred_MAE = tf.reduce_mean(tf.reduce_sum(tf.abs(tf.subtract(self.y_L,self.y_L_mu)), 1))
         train_op = tf.train.AdamOptimizer().minimize(objYpred_MAE)
         
-        # create summary to monitor objection function value displaying on tensorboard
+        batch_size_L=int(self.batch_size)
+        n_batch=int(len(trnX_L)/batch_size_L)
         
-        # summary of training
-        
-        summary_objYpred_MSE = tf.summary.scalar('objYpred_MSE',objYpred_MAE)
-
-        # summary of validation
-        # summary_objL_val = tf.summary.scalar('objL_val',objL_val)
-        # summary_objU_val = tf.summary.scalar('objU_val',objU_val)
-        # summary_objYpred_MSE_val = tf.summary.scalar('objYpred_MSE_val',objYpred_MSE_val)
-        
-
-
-
         self.session.run(tf.global_variables_initializer())
-        
-        
-        #summary_merge_val = tf.summary.merge([summary_objL_val, summary_objU_val, summary_objYpred_MSE_val])
-        # writer = tf.summary.FileWriter("Tensorboard_property_predictor/", graph=self.session.graph)
-
-        # training
-        
-        
-        # val_log=np.zeros(epochs)
         
         for epoch in range(epochs):
             print('######### epoch : '+ str(epoch)+'#############')
             [trnX_L, trnY_L]=self._permutation([trnX_L, trnY_L])
             
-            
             for i in range(n_batch):
-            
                 start_L=i*batch_size_L
                 end_L=start_L+batch_size_L
-
-                trn_res = self.session.run([train_op, objYpred_MAE,summary_objYpred_MSE],
-                                    feed_dict = {self.x_L: trnX_L[start_L:end_L], 
-                                                 self.y_L: trnY_L[start_L:end_L]})
+                trn_res = self.session.run([train_op, objYpred_MAE],
+                                           feed_dict = {self.x_L: trnX_L[start_L:end_L], 
+                                                        self.y_L: trnY_L[start_L:end_L]})
             print(trn_res[1])
-            # self.saver.save(self.session, 'checkpoint_model/PP_model', global_step=epoch)
+           
             # this is for the remain data
-        
             trn_res = self.session.run([train_op, objYpred_MAE,summary_objYpred_MSE],
-                                    feed_dict = {self.x_L: trnX_L[end_L:], 
-                                                 self.y_L: trnY_L[end_L:]})
+                                        feed_dict = {self.x_L: trnX_L[end_L:], 
+                                                     self.y_L: trnY_L[end_L:]})
             
-            # self.saver.save(self.session, "./RNN_model_EA_{}.ckpt".format(str(epoch)))
+            
 
 
                 # writer.add_summary(trn_res[5], epoch * n_batch + i)             
