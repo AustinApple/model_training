@@ -87,7 +87,7 @@ class Model(object):
             print('---', ['Validation', 'cost_val', val_res[0]])
 
             if epoch > 10 and np.min(val_log[:epoch]) > val_res[0]:
-                self.saver.save(self.session, "./new/RNN_model_IE")
+                self.saver.save(self.session, "./RNN_model")
             
             val_log[epoch] = val_res[0] 
            

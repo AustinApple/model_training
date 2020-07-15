@@ -46,7 +46,7 @@ def train(input_file, epochs, property, normalize):
     model.add(Dense(output_dim=int(x_train.shape[1]/12),activation='relu'))
     model.add(Dense(output_dim=int(y_train.shape[1])))
     model.compile(loss='mae', optimizer='adam',metrics=['mae'])
-    mcp_save = ModelCheckpoint('model_ECFPNUM_{}.format(property[0])', save_best_only=True, monitor='val_loss', mode='min')
+    mcp_save = ModelCheckpoint('ECFPNUM_model', save_best_only=True, monitor='val_loss', mode='min')
     print('Training -----------')
     model.fit(x_train, y_train, verbose=1, epochs=epochs, validation_data=(x_test, y_test), callbacks=[mcp_save])
 
