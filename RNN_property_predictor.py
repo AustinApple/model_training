@@ -40,44 +40,18 @@ class Model(object):
 
     def train(self, trnX_L, trnY_L, valX_L, valY_L, epochs):
       
-        # self.mu_prior=np.mean(trnY_L,0)   
-        # self.cov_prior=np.cov(trnY_L.T)     
-
-        # self.tf_mu_prior=tf.constant(self.mu_prior, shape=[1, self.dim_y], dtype=tf.float32)   
-        # self.tf_cov_prior=tf.constant(self.cov_prior, shape=[self.dim_y, self.dim_y], dtype=tf.float32)
-
-
-        # objective functions   
-        # with tf.name_scope('objYpred_MSE'):
-        #     objYpred_MSE = tf.reduce_mean(tf.reduce_sum(tf.squared_difference(self.y_L, self.y_L_mu), 1))
-
         with tf.name_scope('objYpred_MAE'):
             objYpred_MAE = tf.reduce_mean(tf.reduce_sum(tf.abs(tf.subtract(self.y_L,self.y_L_mu)), 1))
-        # # with tf.name_scope('objYpred_MSE_val'):
-        #     objYpred_MSE_val = tf.reduce_mean(tf.reduce_sum(tf.squared_difference(self.y_L, self.y_L_mu), 1))
 
         batch_size=int(self.batch_size)
         
         n_batch_trn=int(len(trnX_L)/batch_size)
         n_batch_val=int(len(valX_L)/batch_size)
     
-        
-       
-            
         # cost_val = objYpred_MSE
         train_op = tf.train.AdamOptimizer().minimize(objYpred_MAE)
-        
-        batch_size_L=int(self.batch_size)
-        n_batch=int(len(trnX_L)/batch_size_L)
-        
-        self.session.run(tf.global_variables_initializer())
-        
-        
-        #summary_merge_val = tf.summary.merge([summary_objL_val, summary_objU_val, summary_objYpred_MSE_val])
-        # writer = tf.summary.FileWriter("Tensorboard_property_predictor/", graph=self.session.graph)
 
-        # training
-        
+        self.session.run(tf.global_variables_initializer())
         
         val_log=np.zeros(epochs)
         
@@ -91,21 +65,16 @@ class Model(object):
                 start_L=i*batch_size
                 end_L=start_L+batch_size
 
-                trn_res = self.session.run([train_op, objYpred_MAE,summary_objYpred_MSE],
+                trn_res = self.session.run([train_op, objYpred_MAE],
                                     feed_dict = {self.x_L: trnX_L[start_L:end_L], 
                                                  self.y_L: trnY_L[start_L:end_L]})
-            
-            # self.saver.save(self.session, 'checkpoint_model/PP_model', global_step=epoch)
+        
             # this is for the remain data
-            trn_res = self.session.run([train_op, objYpred_MAE,summary_objYpred_MSE],
+            trn_res = self.session.run([train_op, objYpred_MAE],
                                     feed_dict = {self.x_L: trnX_L[end_L:], 
                                                  self.y_L: trnY_L[end_L:]})
-            print(trn_res[1])
-            # self.saver.save(self.session, "./RNN_model_EA_{}.ckpt".format(str(epoch)))
-
-
-                # writer.add_summary(trn_res[5], epoch * n_batch + i)             
-            # writer.add_summary(trn_res[2], epoch)
+            print('---', ['training', 'cost_trn', trn_res[1]])
+            
             val_res = []
             for i in range(n_batch_val):
                 start_L=i*batch_size
@@ -113,26 +82,14 @@ class Model(object):
                 val_res.append(self.session.run([objYpred_MAE],
                                feed_dict = {self.x_L: valX_L[start_L:end_L], 
                                             self.y_L: valY_L[start_L:end_L]}))
-                
-            # writer.add_summary(summary_val, epoch * int(10)+ i) 
-            # writer.add_summary(summary_val, epoch)
-            
             
             val_res=np.mean(val_res,axis=0)
             print('---', ['Validation', 'cost_val', val_res[0]])
-            
 
-            # print(val_log)
-            # print(np.min(val_log))
-            # print(val_res[0])
             if epoch > 10 and np.min(val_log[:epoch]) > val_res[0]:
                 self.saver.save(self.session, "./new/RNN_model_IE")
             
-
             val_log[epoch] = val_res[0] 
-        
-        print('############# ',min(val_log),' #########')
-
            
        
     def predict(self, x_input):
