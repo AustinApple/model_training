@@ -47,14 +47,14 @@ def train(input_file, epochs, property, normalize):
     dim_h = 250
 
     n_hidden = 3
-    batch_size = 32
+    batch_size = 200
 
 
     model = RNN_property_predictor.Model(seqlen_x = seqlen_x, dim_x = dim_x, dim_y = dim_y, dim_z = dim_z, dim_h = dim_h,
                         n_hidden = n_hidden, batch_size = batch_size, char_set = char_set)
     with model.session:
-        model.train(trnX_L=x_train, trnY_L=y_train, epochs=epochs)
-        model.saver.save(model.session, "./RNN_model_EA.ckpt")
+        model.train(trnX_L=x_train, trnY_L=y_train, valX_L=x_test, valY_L=y_test, epochs=epochs)
+        # model.saver.save(model.session, "./RNN_model_EA.ckpt")
 
         for j in range(len(property)):
             if normalize:
