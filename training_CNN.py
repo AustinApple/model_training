@@ -31,9 +31,9 @@ def train(input_file, epochs, property, normalize):
         scaler_Y.fit(data[property])
         data[property] = scaler_Y.transform(data[property])
     
-    x, ls_smi_new = molecules(data['smiles'].tolist()).one_hot(char_set=char_set)
-    y = data[property].values
-
+    x, ls_smi_new, ls_index_new = molecules(data['smiles'].tolist()).one_hot(char_set=char_set)
+    y = data[property].iloc[ls_index_new].values
+    
     np.random.seed(0)
     perm_L = np.random.permutation(x.shape[0])
 
